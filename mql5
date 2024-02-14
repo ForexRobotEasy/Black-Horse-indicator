@@ -1,0 +1,77 @@
+
+//+------------------------------------------------------------------+
+//|                                                       Black Horse Indicator                                                 |
+//|                                   Developed by Forex Robot Easy Team (forexroboteasy.com)                  |
+//+------------------------------------------------------------------+
+
+// Define input parameters
+input int LookbackPeriod = 14; // Lookback period for divergence identification
+input double ATRMultiplier = 2.0; // ATR multiplier for divergence identification
+
+// Define indicator buffers
+double bullishDivergenceBuffer[];
+double bearishDivergenceBuffer[];
+
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Set indicator buffers
+    SetIndexBuffer(0, bullishDivergenceBuffer, INDICATOR_DATA);
+    SetIndexBuffer(1, bearishDivergenceBuffer, INDICATOR_DATA);
+
+    // Set indicator labels
+    SetIndexLabel(0, 'Bullish Divergence');
+    SetIndexLabel(1, 'Bearish Divergence');
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Custom indicator iteration function                              |
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime &time[],
+                const double &open[],
+                const double &high[],
+                const double &low[],
+                const double &close[],
+                const long &tick_volume[],
+                const long &volume[],
+                const int &spread[])
+{
+    // Calculate ATR
+    double atrBuffer[];
+    ArraySetAsSeries(atrBuffer, true);
+    CopyBuffer(NULL, 0, 0, LookbackPeriod, atrBuffer);
+
+    // Calculate divergence
+    for(int i = LookbackPeriod; i < rates_total; i++)
+    {
+        double atrValue = atrBuffer[i - LookbackPeriod];
+        double atrThreshold = atrMultiplier * atrValue;
+
+        if(high[i] - low[i - LookbackPeriod] > atrThreshold)
+        {
+            if(close[i] > close[i - LookbackPeriod])
+            {
+                bullishDivergenceBuffer[i] = close[i - LookbackPeriod];
+                bearishDivergenceBuffer[i] = EMPTY_VALUE;
+            }
+            else if(close[i] < close[i - LookbackPeriod])
+            {
+                bearishDivergenceBuffer[i] = close[i - LookbackPeriod];
+                bullishDivergenceBuffer[i] = EMPTY_VALUE;
+            }
+        }
+        else
+        {
+            bullishDivergenceBuffer[i] = EMPTY_VALUE;
+            bearishDivergenceBuffer[i] = EMPTY_VALUE;
+        }
+    }
+
+    return(rates_total);
+}
